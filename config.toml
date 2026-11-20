@@ -1,0 +1,47 @@
+# Configuração do ICP (perfil de cliente ideal) e da pontuação.
+# Exemplo: clínicas de terapia (fono, TO, psicologia, fisioterapia) no Grande Rio.
+# Troque os CNAEs, municípios e palavras-chave para qualquer outro mercado B2B.
+
+[fontes]
+# Pasta com os arquivos da Receita Federal já descompactados
+# (Estabelecimentos*, Empresas*, Socios*, Municipios*). Use "exemplo" para rodar com dados fictícios.
+pasta = "exemplo"
+
+[icp]
+uf = "RJ"
+municipios = ["RIO DE JANEIRO", "NITEROI", "SAO GONCALO", "DUQUE DE CAXIAS",
+              "NOVA IGUACU", "SAO JOAO DE MERITI", "BELFORD ROXO", "NILOPOLIS", "MESQUITA"]
+
+# CNAEs (7 dígitos, sem pontuação) que caracterizam o ICP — principal ou secundário
+cnaes = [
+  "8650003",  # psicologia e psicanálise
+  "8650004",  # fisioterapia
+  "8650005",  # terapia ocupacional
+  "8650006",  # fonoaudiologia
+  "8650099",  # outras atividades de profissionais da área de saúde
+  "8690901",  # práticas integrativas e complementares
+]
+
+# Etapa 2: quantos CNAEs do ICP a empresa precisa ter (2 = multidisciplinar)
+min_cnaes_icp = 2
+# Etapa 2: exigir sócios cadastrados (QSA) — sinal de empresa estruturada
+exigir_qsa = true
+
+# Etapa 3: o nome fantasia ou a razão social precisa conter uma destas palavras
+palavras_nome = ["CLINICA", "ESPACO", "CENTRO", "INSTITUTO", "TERAPIA", "TEA", "INFANTIL", "NUCLEO"]
+
+[pontuacao]
+peso_por_cnae_icp = 2
+max_pontos_socios = 3          # 1 ponto por sócio, até este limite
+palavras_nicho = ["AUTIS", "TEA", "ABA", "NEURO", "INFANT", "KIDS", "CRIANC", "DESENVOLV", "ATIPIC", "INCLUS"]
+pontos_nicho = 4
+palavras_multi = ["MULTI", "INTEGRAD", "INTERDISC", "TRANSDISC"]
+pontos_multi = 2
+capital_minimo = 50000
+pontos_capital = 1
+
+[saida]
+# Quantas empresas entram na lista final por grupo de município
+top_capital = 300               # município sede (o primeiro da lista)
+top_demais = 170                # demais municípios somados
+incluir_contatos = false        # telefones e e-mail ficam fora da saída pública

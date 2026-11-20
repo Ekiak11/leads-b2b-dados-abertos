@@ -1,0 +1,6 @@
+__pycache__/
+.DS_Store
+saida/
+# dados reais da Receita nunca vão para o repositório (contêm dados de sócios)
+dados/
+*.zip
