@@ -2,15 +2,16 @@
 """
 Lista de leads B2B priorizada a partir dos dados abertos do CNPJ (Receita Federal).
 
-Etapas (cada uma em SQL, na pasta sql/):
-  01_carregar.sql   carrega estabelecimentos, empresas, sócios (só contagem) e municípios
-  02_funil.sql      ativa + município + CNAE do ICP -> multidisciplinar com QSA -> nome de clínica
-  03_pontuacao.sql  lead scoring e lista final por região
+Dois modos (campo `modo` em [icp] no config):
+  multidisciplinar  (config.toml)            clínicas de terapia de uma região
+    01_carregar.sql > 02_funil.sql > 03_pontuacao.sql
+  tea               (config_tea_brasil.toml)  espaços terapêuticos para TEA/TDAH no Brasil inteiro
+    01_carregar.sql > 02_funil_tea.sql > 03_pontuacao_tea.sql
 
 Uso:
   pip3 install duckdb
   python3 pipeline.py                      # usa config.toml (por padrão, os dados fictícios de exemplo/)
-  python3 pipeline.py --config outro.toml
+  python3 pipeline.py --config config_tea_brasil.toml
 """
 import argparse
 import os
@@ -27,7 +28,14 @@ AQUI = os.path.dirname(os.path.abspath(__file__))
 COLUNAS_SAIDA = ["posicao", "grupo", "pontuacao", "cnpj", "razao_social", "nome_fantasia",
                  "nm_municipio", "bairro", "cep", "data_inicio_atividade", "porte",
                  "capital_social", "n_cnaes_icp", "n_socios", "cnae_principal"]
+COLUNAS_TEA = ["posicao_uf", "pontuacao", "perfil", "palavra_chave", "cnpj", "razao_social",
+               "nome_fantasia", "uf", "nm_municipio", "bairro", "data_inicio_atividade", "porte",
+               "capital_social", "terapias", "n_socios"]
 COLUNAS_CONTATO = ["telefone_1", "email"]
+ETAPAS = {
+    "multidisciplinar": ("01_carregar.sql", "02_funil.sql", "03_pontuacao.sql"),
+    "tea": ("01_carregar.sql", "02_funil_tea.sql", "03_pontuacao_tea.sql"),
+}
 
 
 def sql_literal(valor):
@@ -60,31 +68,40 @@ def main():
     if not os.path.isabs(pasta):
         pasta = os.path.join(AQUI, pasta)
 
+    modo = cfg["icp"].get("modo", "multidisciplinar")
     variaveis = {"pasta": pasta}
-    for secao in ("icp", "pontuacao", "saida"):
-        variaveis.update(cfg[secao])
+    for secao, valores in cfg.items():
+        if secao != "fontes":
+            variaveis.update({k: v for k, v in valores.items() if k != "modo"})
 
     con = duckdb.connect()
     for nome, valor in variaveis.items():
         con.execute(f"SET VARIABLE {nome} = {sql_literal(valor)}")
 
-    for arquivo in ("01_carregar.sql", "02_funil.sql", "03_pontuacao.sql"):
+    for arquivo in ETAPAS[modo]:
         rodar_sql(con, arquivo)
 
     os.makedirs(args.saida, exist_ok=True)
-    colunas = COLUNAS_SAIDA + (COLUNAS_CONTATO if cfg["saida"]["incluir_contatos"] else [])
+    base = COLUNAS_TEA if modo == "tea" else COLUNAS_SAIDA
+    ordem = "uf, posicao_uf" if modo == "tea" else "grupo DESC, posicao"
+    colunas = base + (COLUNAS_CONTATO if cfg["saida"]["incluir_contatos"] else [])
     destino = os.path.join(args.saida, "lista_priorizada.csv")
     con.execute(f"""
-        COPY (SELECT {', '.join(colunas)} FROM lista_priorizada ORDER BY grupo DESC, posicao)
+        COPY (SELECT {', '.join(colunas)} FROM lista_priorizada ORDER BY {ordem})
         TO '{destino}' (HEADER, DELIMITER ';')""")
     con.execute(f"COPY funil TO '{os.path.join(args.saida, 'funil.csv')}' (HEADER, DELIMITER ';')")
 
     print("\nFunil")
     con.sql("SELECT * FROM funil").show()
     print("Top 10")
-    con.sql("""SELECT posicao, grupo, pontuacao, coalesce(nullif(nome_fantasia, ''), razao_social) AS nome,
-                      nm_municipio, n_cnaes_icp, n_socios
-               FROM lista_priorizada ORDER BY pontuacao DESC, posicao LIMIT 10""").show()
+    if modo == "tea":
+        con.sql("""SELECT pontuacao, perfil, palavra_chave, coalesce(nullif(nome_fantasia, ''), razao_social) AS nome,
+                          uf, nm_municipio, terapias
+                   FROM lista_priorizada ORDER BY pontuacao DESC, uf LIMIT 10""").show()
+    else:
+        con.sql("""SELECT posicao, grupo, pontuacao, coalesce(nullif(nome_fantasia, ''), razao_social) AS nome,
+                          nm_municipio, n_cnaes_icp, n_socios
+                   FROM lista_priorizada ORDER BY pontuacao DESC, posicao LIMIT 10""").show()
     print(f"Arquivos gerados em {args.saida}/")
 
 
