@@ -8,6 +8,7 @@
 pasta = "exemplo"
 
 [icp]
+modo = "multidisciplinar"
 uf = "RJ"
 municipios = ["RIO DE JANEIRO", "NITEROI", "SAO GONCALO", "DUQUE DE CAXIAS",
               "NOVA IGUACU", "SAO JOAO DE MERITI", "BELFORD ROXO", "NILOPOLIS", "MESQUITA"]

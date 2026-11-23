@@ -35,8 +35,9 @@ FROM read_csv(getvariable('pasta') || '/*ESTABELE*', delim = ';', header = false
                        'logradouro', 'numero', 'complemento', 'bairro', 'cep', 'uf', 'cd_municipio',
                        'ddd_1', 'telefone_1', 'ddd_2', 'telefone_2', 'ddd_fax', 'fax', 'email',
                        'situacao_especial', 'data_situacao_especial'])
--- já filtra na leitura: só ativas (02) da UF do ICP, para não carregar o país inteiro
-WHERE situacao_cadastral = '02' AND uf = getvariable('uf');
+-- já filtra na leitura: só ativas (02) e, se o config definir uma UF, só ela
+-- (uf = "" no config roda o Brasil inteiro)
+WHERE situacao_cadastral = '02' AND (getvariable('uf') = '' OR uf = getvariable('uf'));
 
 -- Sócios: só a contagem por empresa. Nomes e documentos não saem desta etapa.
 CREATE OR REPLACE VIEW socios_por_empresa AS

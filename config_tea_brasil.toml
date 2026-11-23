@@ -1,0 +1,62 @@
+# Segundo ICP: espaços terapêuticos para crianças com autismo (TEA), TDAH e síndromes
+# correlatas, no Brasil inteiro. Uso: python3 pipeline.py --config config_tea_brasil.toml
+#
+# Diferente do config.toml (que pega toda clínica multidisciplinar de uma região),
+# aqui o filtro é estrito: o nome da empresa precisa indicar o público TEA/infantil.
+
+[fontes]
+pasta = "exemplo"
+
+[icp]
+modo = "tea"
+uf = ""                         # vazio = Brasil inteiro; "SP" = só um estado
+
+# Terapias que caracterizam o espaço (principal ou secundário)
+cnaes_terapia = [
+  "8650003",  # psicologia e psicanálise
+  "8650004",  # fisioterapia
+  "8650005",  # terapia ocupacional
+  "8650006",  # fonoaudiologia
+]
+# Aceito no perfil "TEA no nome" mesmo sem terapia listada (muitas clínicas ABA usam este)
+cnae_outros_saude = "8650099"
+
+[segmento]
+# Perfil A: o nome deixa explícito o público TEA/TDAH (fragmentos de regex)
+palavras_fortes = ["AUTIS", "\\bTEA\\b", "\\bABA\\b", "TDAH", "ESPECTRO", "NEURODIVERG",
+                   "NEURO ?DESENVOLV", "DESENVOLVIMENTO INFANTIL", "ANALISE DO COMPORTAMENTO",
+                   "ANALISE COMPORTAMENTAL", "COMPORTAMENTO APLICAD", "DENVER", "INTERVENCAO PRECOCE",
+                   "ESTIMULACAO PRECOCE", "SINDROME", "\\bDOWN\\b", "NEUROATIPIC", "\\bATIPIC",
+                   "INTEGRACAO SENSORIAL", "NEUROPEDIATR", "PEDIASUIT", "THERASUIT", "\\bTGD\\b",
+                   "NEUROPSICOPEDAG", "LACO AZUL", "MUNDO AZUL", "ABRIL AZUL", "QUEBRA.?CABECA",
+                   "NECESSIDADES ESPECIAIS"]
+# Perfil B: nome infantil + terapia ocupacional ou fonoaudiologia no CNAE
+palavras_infantis = ["INFANT", "\\bKIDS?\\b", "CRIANC", "PEDIATR", "\\bBABY", "\\bBEBE", "INFANCIA",
+                     "\\bMIRIM", "PEQUENO", "PEQUENA", "BRINCA", "BRINQU", "LUDIC", "ESTIMULACAO",
+                     "SENSORIAL", "PSICOPEDAG", "APRENDIZAGEM", "NEURO", "CRESCER", "CRESCIMENTO"]
+# Fora do perfil (só descarta se o nome não tiver palavra forte)
+palavras_exclusao = ["ODONTO", "DENTAL", "DENTIST", "ESTETIC", "LABORAT", "IMAGEM", "DIAGNOST",
+                     "HOSPITAL", "ACADEMIA", "FITNESS", "PILATES", "VETERIN", "\\bPET\\b", "FARMAC",
+                     "OTICA", "ORTOPED", "DERMATO", "CIRURG", "OFTALM", "CARDIO", "UROLOG", "GINECO",
+                     "ONCOLOG", "RADIOL", "ENDOSCOP", "VACIN", "DIALISE", "REPOUSO", "GERIATR", "IDOSO",
+                     "SENIOR", "HOME ?CARE", "DOMICILI", "EMAGREC", "CAPILAR", "BELEZA", "\\bSPA\\b",
+                     "MASSAG", "MEDICINA DO TRABALHO", "SAUDE OCUPACIONAL", "SEGURANCA DO TRABALHO",
+                     "AMBULANC", "REMOCAO", "DEPENDENCIA QUIMICA", "DEPENDENTES QUIMICOS", "ALCOOL",
+                     "DROGAS", "COMUNIDADE TERAPEUTICA", "RECUPERACAO", "ESCOLA", "COLEGIO", "CRECHE",
+                     "BERCARIO", "EDUCACAO INFANTIL", "CURSO", "IDIOMA", "INGLES", "ESPORT", "NATACAO",
+                     "BALLET", "DANCA", "MUSICA"]
+# Naturezas jurídicas fora do ICP: 1xxx administração pública, 2127 SCP, 2135 empresário individual
+naturezas_excluidas = ["2127", "2135"]
+
+[pontuacao]
+pontos_perfil_a = 6
+pontos_perfil_b = 3
+pontos_por_terapia = 1           # cada uma das 4 terapias no CNAE
+pontos_to_e_fono = 2             # TO + fono juntos: desenho típico de clínica TEA
+max_pontos_socios = 3
+capital_minimo = 50000
+pontos_capital = 1
+
+[saida]
+top_por_uf = 0                   # 0 = todas; N = só as N melhores de cada estado
+incluir_contatos = false
